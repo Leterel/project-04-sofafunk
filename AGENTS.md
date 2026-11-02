@@ -21,7 +21,7 @@ Tests: `npm test; npm run test:e2e`. Bei mehreren Befehlen einzeln ausführen un
 - Projektwerkzeuge ändern keine anderen Projektquellen. Build-/Testartefakte in isolierten, ignorierten Arbeitsordnern halten. Vorhandene Ausgaben nicht unbesehen überschreiben.
 
 ## Nächste sichere Etappe
-Begrenzte, abbrechbare Dateiübertragung mit Empfängerzustimmung planen und separat testen; Internet-/TURN-Praxistest bleibt offen.
+Dateiübertragung ist lokal geprüft. Zwei reale Heimnetze/TURN-Praxis und native Desktop-Downloadbedienung gezielt abnehmen; keine produktive Sicherheitsgarantie ableiten.
 
 ## Übergabe
 HANDOFF.md aktualisieren: Ausgangscommit/Branch, konkrete Änderungsliste, ausgeführte Befehle, Ergebnis, ausgelassene Tests samt Grund, Risiken und nächste Etappe. Nur tatsächlich ausgeführte Tests als bestanden ausweisen. Vor Merge Diff und Tests prüfen; externe Freigaben bleiben offen.

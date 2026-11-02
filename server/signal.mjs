@@ -5,7 +5,7 @@ import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { isIP } from 'node:net';
 import { WebSocketServer, WebSocket } from 'ws';
 
-const staticFiles = new Map(['index.html', 'style.css', 'app.js', 'connection.mjs'].map(n => ['/' + n, new URL('../public/' + n, import.meta.url)]));
+const staticFiles = new Map(['index.html', 'style.css', 'app.js', 'connection.mjs', 'file-transfer.mjs'].map(n => ['/' + n, new URL('../public/' + n, import.meta.url)]));
 const mime = { html: 'text/html; charset=utf-8', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript' };
 function validateTurn(turnUrls, turnSecret) {
   if (turnUrls === undefined && turnSecret === undefined) return [];

@@ -212,3 +212,9 @@ ersetzt keine Browser-/Android-/Medien-/Signierprüfung. Laufresultate:
 ## Entwicklung und Übergabe
 
 [AGENTS.md](AGENTS.md) bündelt den Einstieg für Entwickler und KI-Agenten; [TESTING.md](TESTING.md) nennt reproduzierbare Prüfungen und deren Grenzen. Der aktuelle Übergabestand steht in [HANDOFF.md](HANDOFF.md).
+
+## Direkte Dateiübertragung (lokale Abnahme 02.11.2026)
+
+Im Chat „Datei direkt teilen“ öffnen. Eine Datei mit 1 Byte bis 5 MiB anbieten; die andere Person muss bewusst annehmen. Erst nach vollständiger SHA-256-Prüfung erscheint „Geprüfte Datei speichern“. Keine automatische Vorschau, kein automatisches Öffnen, keine zentrale Dateispeicherung. Hashprüfung erkennt Übertragungsfehler und ist kein Virenscan. Nur Dateien annehmen, deren Herkunft du einschätzen kannst.
+
+Je Richtung maximal eine Datei gleichzeitig; Blöcke werden einzeln bestätigt. Bei Abbruch, Zeitlimit oder Verlassen werden die Arbeitsspeicherpuffer verworfen. Dateinamen werden für lokale Downloads bereinigt. Neue Verbindung bedeutet neue Zustimmung. Der Prototyp unterstützt noch kein Wiederaufnehmen und keine größeren Dateien. Downloads im nativen Electron-Fenster wurden in dieser Runde nicht gesondert abgenommen.

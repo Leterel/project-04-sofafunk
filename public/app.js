@@ -1,4 +1,5 @@
 import { describeConnection, serverCloseMessage } from './connection.mjs';
+import {FileTransfer,MAX_FILE_BYTES} from './file-transfer.mjs';
 const $ = id => document.getElementById(id);
 let socket, peer, selfId, iceServers = [];
 let joinDeadline;
@@ -43,6 +44,21 @@ function controls(connected) {
   for (const id of ['message','send']) $(id).disabled = !connected;
   $('leave').disabled = !socket;
   $('reconnect').disabled = !selfId;
+  renderFiles();
+}
+function renderFiles(snapshot=peer?.files?.snapshot()) {
+  const connected=peer?.channel?.readyState==='open' && peer.pc.connectionState==='connected';
+  $('file-input').disabled=!connected || !!snapshot?.outgoing;
+  $('file-send').disabled=!connected || !!snapshot?.outgoing;
+  $('file-accept').hidden=snapshot?.incoming?.phase!=='pending';
+  $('file-accept').disabled=!connected;
+  $('file-save').hidden=snapshot?.incoming?.phase!=='ready';
+  $('file-cancel').disabled=!snapshot?.outgoing && !snapshot?.incoming;
+  $('file-status').textContent=snapshot?.message||'Keine Dateiübertragung.';
+  for(const [id,value] of [['file-out',snapshot?.outgoing],['file-in',snapshot?.incoming]]) {
+    const element=$(id);element.hidden=!value;element.dataset.phase=value?.phase||'';
+    element.textContent=value?`${id==='file-out'?'Senden':'Empfangen'}: ${value.name} · ${value.offset} / ${value.size} Bytes`:'';
+  }
 }
 function cancelJoinDeadline() { clearTimeout(joinDeadline); joinDeadline = undefined; }
 function waitForServer(current, message) {
@@ -99,7 +115,7 @@ function bindChannel(current, dc) {
     $('remote-title').textContent = 'Da bist du ja.'; $('remote-description').textContent = 'Kamera aus. Gesellschaft an.';
     channelSend({type:'media',...localState()});
   };
-  dc.onclose = () => { if (alive(current)) { controls(false); note('Chatverbindung beendet. Bitte den Raum neu betreten.'); } };
+  dc.onclose = () => { if (alive(current)) { current.files.close(); controls(false); note('Chatverbindung beendet. Bitte den Raum neu betreten.'); } };
   dc.onerror = () => { if (alive(current)) note('Chatverbindung gestört. Bitte den Raum neu betreten.'); };
   dc.onmessage = event => {
     if (!alive(current) || typeof event.data !== 'string' || event.data.length > 20000) return;
@@ -107,6 +123,7 @@ function bindChannel(current, dc) {
       const data = JSON.parse(event.data);
       if (data?.type==='chat' && typeof data.text==='string' && data.text.length<=4000) appendMessage($('peer-name').textContent,data.text);
       if (data?.type==='media') { remoteState={mic:!!data.mic,camera:!!data.camera,screen:!!data.screen}; renderRemote(); }
+      if (typeof data?.type==='string' && data.type.startsWith('file-')) current.files.receive(data);
     } catch { /* Ignore malformed peer data. */ }
   };
 }
@@ -115,6 +132,7 @@ function createPeer(id, name, initiate) {
   $('peer-name').textContent=name; $('remote-label').textContent=name;
   const pc = new RTCPeerConnection({iceServers});
   const current = peer = {id,pc,socket,channel:null,makingOffer:false,ignoreOffer:false,settingAnswer:false,candidates:[],signals:Promise.resolve(),busy:false};
+  current.files=new FileTransfer({send:data=>alive(current)&&channelSend(data),onChange:snapshot=>{if(alive(current))renderFiles(snapshot);}});
   pc.onicecandidate=event=>{if(event.candidate) signal(current,{candidate:event.candidate});};
   pc.onnegotiationneeded=async()=>{
     try {
@@ -150,6 +168,7 @@ function createPeer(id, name, initiate) {
       updateConnection(current);
     }
     if(['failed','disconnected','closed'].includes(pc.connectionState)) {
+      current.files.cancel();
       controls(false); $('badge').textContent='● Verbindung unterbrochen'; $('badge').classList.remove('online');
       $('route-hint').textContent='Ihr könnt die Verbindung neu aufbauen. Mikro, Kamera und Freigabe werden dabei gestoppt.';
       note('Verbindung unterbrochen. Versucht „Neu verbinden“. Zwischen manchen Heimnetzen wird ein Vermittlungsserver (TURN) benötigt.');
@@ -204,6 +223,7 @@ function closePeer() {
   for (const stream of [micStream,cameraStream,screenStream]) stopStream(stream);
   micStream=cameraStream=screenStream=null;
   if (old) {
+    old.files?.close();
     clearInterval(old.statsTimer);
     old.pc.onconnectionstatechange=old.pc.onnegotiationneeded=old.pc.onicecandidate=old.pc.ontrack=old.pc.ondatachannel=null;
     if(old.channel){old.channel.onopen=old.channel.onclose=old.channel.onmessage=old.channel.onerror=null;old.channel.close();}
@@ -216,6 +236,7 @@ function closePeer() {
   delete $('connection').dataset.route;
   $('route-hint').textContent='Sobald ihr verbunden seid, steht hier, ob eure Daten direkt oder über einen Vermittlungsserver laufen.';
   controls(false);updateMedia();renderRemote();
+  $('file-input').value='';
 }
 function disconnect(message='Du hast das Sofa verlassen.', retainSession=false) {
   cancelJoinDeadline();
@@ -288,6 +309,29 @@ $('chat-form').addEventListener('submit',event=>{
   if (!channelSend({type:'chat',text})) return note('Nachricht konnte nicht gesendet werden. Bitte gleich erneut versuchen.');
   appendMessage($('name').value.trim(),text,true);$('message').value='';
 });
+$('file-form').addEventListener('submit',async event=>{
+  event.preventDefault();const current=peer,file=$('file-input').files[0];
+  if(!file)return;
+  if(file.size<1||file.size>MAX_FILE_BYTES){$('file-input').value='';$('file-status').textContent='Dateien müssen 1 Byte bis 5 MiB groß sein.';return;}
+  if(!alive(current)||current.channel?.readyState!=='open')return;
+  // Hold the slot while reading; late completion must never reach a new peer.
+  if(current.readingFile||current.files.snapshot().outgoing)return;
+  current.readingFile=true;$('file-send').disabled=true;
+  try{
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    if(!alive(current)||current.channel?.readyState!=='open')return;
+    await current.files.offer(bytes,file.name);
+  }catch(error){if(alive(current))$('file-status').textContent=error.message;}
+  finally{current.readingFile=false;if(alive(current)){$('file-input').value='';renderFiles();}}
+});
+$('file-accept').onclick=()=>peer?.files.accept();
+$('file-cancel').onclick=()=>peer?.files.cancel();
+$('file-save').onclick=()=>{
+  const file=peer?.files.takeReceived();if(!file)return;
+  const url=URL.createObjectURL(new Blob([file.bytes],{type:'application/octet-stream'}));
+  const anchor=document.createElement('a');anchor.href=url;anchor.download=file.name;document.body.append(anchor);anchor.click();anchor.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+};
 async function toggle(kind) {
   const current=peer;
   if(!current || current.busy)return;
