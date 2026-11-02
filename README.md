@@ -1,5 +1,9 @@
 # SofaFunk
 
+Verbindlicher Architekturstand: [P2P für genau zwei Personen](ARCHITECTURE-P2P.md).
+Text läuft über den WebRTC-DataChannel; eine zentrale dauerhafte Chatdatenbank
+ist keine Voraussetzung. [Monetarisierungsgrenzen](MONETIZATION.md).
+
 Erster eigener Test: [Kurzanleitung](ERSTTEST.md).
 
 Windows 0.1.4 ergänzt eine lokale Absturzdiagnose (`--diagnose-app`).
@@ -204,3 +208,13 @@ exakte offizielle Commit-IDs festgelegt, Tokenrechte nur contents:read, keine
 Secrets, keine Artefakt-/Cache-Uploads und keine produktiven Server. Diese Suite
 ersetzt keine Browser-/Android-/Medien-/Signierprüfung. Laufresultate:
 [GitHub Actions](https://github.com/Leterel/project-04-sofafunk/actions/workflows/node-tests.yml).
+
+## Entwicklung und Übergabe
+
+[AGENTS.md](AGENTS.md) bündelt den Einstieg für Entwickler und KI-Agenten; [TESTING.md](TESTING.md) nennt reproduzierbare Prüfungen und deren Grenzen. Der aktuelle Übergabestand steht in [HANDOFF.md](HANDOFF.md).
+
+## Direkte Dateiübertragung (lokale Abnahme 02.11.2026)
+
+Im Chat „Datei direkt teilen“ öffnen. Eine Datei mit 1 Byte bis 5 MiB anbieten; die andere Person muss bewusst annehmen. Erst nach vollständiger SHA-256-Prüfung erscheint „Geprüfte Datei speichern“. Keine automatische Vorschau, kein automatisches Öffnen, keine zentrale Dateispeicherung. Hashprüfung erkennt Übertragungsfehler und ist kein Virenscan. Nur Dateien annehmen, deren Herkunft du einschätzen kannst.
+
+Je Richtung maximal eine Datei gleichzeitig; Blöcke werden einzeln bestätigt. Bei Abbruch, Zeitlimit oder Verlassen werden die Arbeitsspeicherpuffer verworfen. Dateinamen werden für lokale Downloads bereinigt. Neue Verbindung bedeutet neue Zustimmung. Der Prototyp unterstützt noch kein Wiederaufnehmen und keine größeren Dateien. Downloads im nativen Electron-Fenster wurden in dieser Runde nicht gesondert abgenommen.

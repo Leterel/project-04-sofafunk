@@ -1,10 +1,11 @@
 // Real WebSocket + WebRTC integration. Synthetic camera/microphone/screen
 // sources keep this test independent of personal devices and desktop content.
-import { chromium } from 'playwright';
+import {pathToFileURL} from 'node:url';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(process.env.PLAYWRIGHT_MODULE).href:'playwright');
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createSignalServer } from '../server/signal.mjs';
 import { serverEndpoint } from '../deploy/check-server.mjs';
@@ -80,6 +81,20 @@ try {
   await a.locator('#message').fill('ey <script>safe</script>');await a.locator('#send').click();
   await b.locator('#messages').getByText('ey <script>safe</script>',{exact:true}).waitFor();
   await b.locator('#message').fill('läuft, Mois.');await b.locator('#send').click();await a.locator('#messages').getByText('läuft, Mois.',{exact:true}).waitFor();results.push('Bidirectional data-channel chat; HTML displayed as text');
+  for(const page of [a,b])await page.locator('.file-panel summary').click();
+  const fixture=Buffer.from(Array.from({length:200001},(_,i)=>(i*31)%256));
+  await a.locator('#file-input').setInputFiles({name:'synthetic-audio-data.bin',mimeType:'application/octet-stream',buffer:fixture});await a.locator('#file-send').click();
+  await b.locator('#file-accept').waitFor();assert.equal(await b.locator('#file-in').getAttribute('data-phase'),'pending');
+  await delay(150);assert.match(await b.locator('#file-in').textContent(),/0 \/ 200001 Bytes/);assert.equal(await b.locator('#file-save').isVisible(),false);
+  await b.locator('#file-accept').click();await b.locator('#file-save').waitFor({timeout:20000});
+  const downloadPromise=b.waitForEvent('download');await b.locator('#file-save').click();const download=await downloadPromise;
+  assert.equal(download.suggestedFilename(),'synthetic-audio-data.bin');const downloaded=await readFile(await download.path());
+  assert.equal(createHash('sha256').update(downloaded).digest('hex'),createHash('sha256').update(fixture).digest('hex'));
+  await a.waitForFunction(()=>document.getElementById('file-out').hidden);results.push('Multi-chunk file waits for consent, verifies SHA-256 and downloads exact bytes only on explicit save');
+  await a.locator('#file-input').setInputFiles({name:'oversize.bin',mimeType:'application/octet-stream',buffer:Buffer.alloc(5*1024*1024+1)});await a.locator('#file-send').click();
+  assert.match(await a.locator('#file-status').textContent(),/5 MiB/);assert.equal(await b.locator('#file-accept').isVisible(),false);
+  await a.locator('#file-input').setInputFiles({name:'decline.bin',mimeType:'application/octet-stream',buffer:Buffer.from('synthetic')});await a.locator('#file-send').click();await b.locator('#file-accept').waitFor();await b.locator('#file-cancel').click();
+  await a.waitForFunction(()=>document.getElementById('file-out').hidden);assert.equal(await b.locator('#file-save').isVisible(),false);results.push('Oversize rejected before offer; receiver rejection clears both transfer slots');
   await a.locator('#mic').click();await received(b,'audio');
   await b.locator('#mic').click();await received(a,'audio');results.push('Bidirectional real RTP audio using synthetic microphone');
   await a.locator('#camera').click();await received(b,'video');
@@ -111,9 +126,12 @@ try {
   }
   await a.locator('#screen').click();await a.locator('#camera').click();await a.locator('#mic').click();
   await a.waitForFunction(()=>window.testStreams.every(s=>s.getTracks().every(t=>t.readyState==='ended')));results.push('Stopped capture tracks all ended');
+  await a.locator('#file-input').setInputFiles({name:'disconnect.bin',mimeType:'application/octet-stream',buffer:Buffer.from('discard on disconnect')});await a.locator('#file-send').click();await b.locator('#file-accept').waitFor();
   await b.locator('#leave').click();await a.waitForFunction(()=>document.getElementById('peer-name').textContent==='Warte auf Gesellschaft');
   await b.waitForFunction(()=>window.testStreams.every(s=>s.getTracks().every(t=>t.readyState==='ended')));results.push('Leaving stops own media and tears down peer');
   await b.locator('#join').click();await connected(a,b);
+  for(const page of [a,b]){assert.equal(await page.locator('#file-accept').isVisible(),false);assert.equal(await page.locator('#file-save').isVisible(),false);assert.equal(await page.locator('#file-out').isVisible(),false);assert.equal(await page.locator('#file-in').isVisible(),false);}
+  results.push('Leaving discards pending file; rejoin never exposes stale transfer or download');
   await a.locator('#message').fill('Wieder da');await a.locator('#send').click();await b.locator('#messages').getByText('Wieder da',{exact:true}).waitFor();results.push('Rejoin establishes new functioning data channel');
   await a.locator('#mic').click(); await a.locator('#camera').click(); await a.locator('#screen').click();
   const previousPeers=await a.evaluate(()=>window.testPeers.length);
