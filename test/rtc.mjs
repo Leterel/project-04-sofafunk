@@ -1,6 +1,7 @@
 // Real WebSocket + WebRTC integration. Synthetic camera/microphone/screen
 // sources keep this test independent of personal devices and desktop content.
-import { chromium } from 'playwright';
+import {pathToFileURL} from 'node:url';
+const {chromium}=await import(process.env.PLAYWRIGHT_MODULE?pathToFileURL(process.env.PLAYWRIGHT_MODULE).href:'playwright');
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
