@@ -184,7 +184,7 @@ Die folgenden Abschnitte dokumentieren den vorherigen Stand 0.1.1.
   Ausgewählte ICE-Paare auf beiden Seiten `relay`/`relay`, Chat, RTP-Audio,
   Videodecoding, Bildschirmstream und Wiederbeitritt bestanden.
 - Alle Quelltexte und Windows/Linux-Downloads am 23.09. im privaten GitHub-Repo
-  veröffentlicht: https://github.com/Leterel/discord-alternative/releases/tag/v0.1.0.
+  veröffentlicht: https://github.com/Leterel/project-04-sofafunk/releases/tag/v0.1.0.
 
 ## Noch offen
 

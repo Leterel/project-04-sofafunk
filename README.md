@@ -11,7 +11,7 @@ Bildschirmfreigabe. Windows 11 und Linux x64, mit eigener Server-Konfiguration.
 
 ## Installieren und starten
 
-[Windows- und Linux-Downloads](https://github.com/Leterel/discord-alternative/releases/tag/v0.1.4)
+[Windows- und Linux-Downloads](https://github.com/Leterel/project-04-sofafunk/releases/tag/v0.1.4)
 (öffentliches Repository).
 
 **Windows:** `SofaFunk.Setup.0.1.4.exe` ausführen, Installationsordner wählen
@@ -203,4 +203,4 @@ Node-Regressionstests unter Ubuntu und Windows mit Node24 aus. Aktionen sind auf
 exakte offizielle Commit-IDs festgelegt, Tokenrechte nur contents:read, keine
 Secrets, keine Artefakt-/Cache-Uploads und keine produktiven Server. Diese Suite
 ersetzt keine Browser-/Android-/Medien-/Signierprüfung. Laufresultate:
-[GitHub Actions](https://github.com/Leterel/discord-alternative/actions/workflows/node-tests.yml).
+[GitHub Actions](https://github.com/Leterel/project-04-sofafunk/actions/workflows/node-tests.yml).

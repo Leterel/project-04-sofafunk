@@ -12,7 +12,7 @@ Nur derselbe PC; jeder Start bekommt einen neuen Schlüssel. Vorhandene produkti
 Servervariablen werden ignoriert. Die folgenden manuellen Varianten bleiben möglich.
 ## Auf diesem Windows-PC, ohne öffentlichen Server
 
-1. Den neu bereitgestellten Windows-Installer `SofaFunk Setup 0.1.4.exe` installieren. Der ältere [Release 0.1.3](https://github.com/Leterel/discord-alternative/releases/tag/v0.1.3) enthält die neue Diagnose noch nicht.
+1. Den neu bereitgestellten Windows-Installer `SofaFunk Setup 0.1.4.exe` installieren. Der ältere [Release 0.1.3](https://github.com/Leterel/project-04-sofafunk/releases/tag/v0.1.3) enthält die neue Diagnose noch nicht.
 2. In diesem Repository mit installiertem Node.js 24 einmal `npm ci` ausführen, falls die Abhängigkeiten fehlen.
 3. In PowerShell einen nur lokal erreichbaren Testserver starten:
 
